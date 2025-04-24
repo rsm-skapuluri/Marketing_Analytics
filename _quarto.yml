@@ -1,0 +1,24 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Srujith_Website"
+  navbar:
+    left:
+      - href: index.qmd
+        text: About
+      - resume.qmd
+      - href: blog.qmd
+        text: Projects
+
+format:
+  html:
+    theme:
+      - cosmo
+      - brand
+    css: styles.css
+    toc: true
+
+
+

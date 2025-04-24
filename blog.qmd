@@ -1,0 +1,8 @@
+---
+title: "My Projects"
+listing: 
+    contents: Blog
+    type: grid
+    sort: "date desc"
+    categories: false
+---

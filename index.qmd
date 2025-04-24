@@ -1,0 +1,13 @@
+---
+title: "Srujith Kapuluri"
+image: "SrujithK.png"
+about: 
+    template: jolla
+    links:
+    -   icon: envelope
+        href: mailto:skapuluri@ucsd.edu
+    -   icon: linkedin
+        href: https://www.linkedin.com/in/venkata-srujith-kapuluri/
+---
+
+Marketing(Data and CRM) Intern at UCSD Athletics
