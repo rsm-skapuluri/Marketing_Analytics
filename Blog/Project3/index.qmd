@@ -420,8 +420,9 @@ ggplot(diffs_df, aes(x = diff)) +
 ::::
 ::::
 ::: {.callout-note collapse="true"}
-## Simulation Experiment
 
+## Simulation Experiment
+###
 ### Law of Large Numbers
 
 To demonstrate the Law of Large Numbers, I simulated 100,000 donation outcomes each for the control group (p = 0.018) and treatment group (p = 0.022). I then took 10,000 differences between matched treatment and control values and plotted the **cumulative average** of those differences over time.
