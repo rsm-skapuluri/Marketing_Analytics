@@ -10,7 +10,7 @@ callout-appearance: minimal # this hides the blue "i" icon on .callout-notes
 
 Dean Karlan at Yale and John List at the University of Chicago conducted a field experiment to test the effectiveness of different fundraising letters. They sent out 50,000 fundraising letters to potential donors, randomly assigning each letter to one of three treatments: a standard letter, a matching grant letter, or a challenge grant letter. They published the results of this experiment in the _American Economic Review_ in 2007. The article and supporting data are available from the [AEA website](https://www.aeaweb.org/articles?id=10.1257/aer.97.5.1774) and from Innovations for Poverty Action as part of [Harvard's Dataverse](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/27853&version=4.2).
 
-_to do: expand on the description of the experiment._
+
 
 This project seeks to replicate their results.
 
@@ -33,7 +33,6 @@ summary(df)
 
 ### Description
 
-_todo: Read the data into R/Python and describe the data_
 # Summarize donation outcomes by treatment condition
 ```{r}
 df %>%
@@ -110,7 +109,6 @@ df %>%
 
 As an ad hoc test of the randomization mechanism, I provide a series of tests that compare aspects of the treatment and control groups to assess whether they are statistically significantly different from one another.
 
-_todo: test a few variables other than the key outcome variables (for example, test months since last donation) to see if the treatment and control groups are statistically significantly different at the 95% confidence level. Do each as a t-test and separately as a linear regression, and confirm you get the exact same results from both methods. When doing a t-test, use the formula in the class slides. When doing the linear regression, regress for example mrm2 on treatment and look at the estimated coefficient on the treatment variable. It might be helpful to compare parts of your analysis to Table 1 in the paper. Be sure to comment on your results (hint: why is Table 1 included in the paper)._
 
 ```{r}
 # t-tests
@@ -154,9 +152,7 @@ The results are consistent across both methods and match **Table 1 in Karlan & L
 
 First, I analyze whether matched donations lead to an increased response rate of making a donation. 
 
-_todo: make a barplot with two bars. Each bar is the proportion of people who donated. One bar for treatment and one bar for control._
 
-_todo: run a t-test between the treatment and control groups on the binary outcome of whether any charitable donation was made. Also run a bivariate linear regression that demonstrates the same finding. (It may help to confirm your calculations match Table 2a Panel A.) Report your statistical results and interpret them in the context of the experiment (e.g., if you found a difference with a small p-value or that was statistically significant at some threshold, what have you learned about human behavior? Use mostly English words, not numbers or stats, to explain your finding.)_
 ```{r}
 # Barplot: Proportion who donated by treatment status
 df %>%
@@ -195,7 +191,6 @@ Then I ran both a t-test and a linear regression:
 Together, these results suggest that people are **more likely to donate when they’re told their donation will be matched**. This aligns with behavioral economics — people may perceive greater value or urgency when their contribution is effectively “worth more.” Even though the absolute change is small, it's meaningful in a large-scale campaign context.
 
 
-_todo: run a probit regression where the outcome variable is whether any charitable donation was made and the explanatory variable is assignment to treatment or control. Confirm that your results replicate Table 3 column 1 in the paper._
 ```{r}
 # Probit model: whether a donation was made ~ treatment assignment
 summary(glm(gave ~ treatment, data = df, family = binomial(link = "probit")))
@@ -216,7 +211,6 @@ Overall, this analysis shows that **matching offers matter** — not necessarily
 
 Next, I assess the effectiveness of different sizes of matched donations on the response rate.
 
-_todo: Use a series of t-tests to test whether the size of the match ratio has an effect on whether people donate or not. For example, does the 2:1 match rate lead increase the likelihood that someone donates as compared to the 1:1 match rate? Do your results support the "figures suggest" comment the authors make on page 8?_
 ```{r}
 # Filter treatment group only (exclude control)
 df_ratio <- df %>% filter(ratio > 0)
@@ -227,7 +221,6 @@ t.test(gave ~ ratio, data = df_ratio %>% filter(ratio %in% c(2, 3)))
 t.test(gave ~ ratio, data = df_ratio %>% filter(ratio %in% c(1, 3)))
 ```
 
-_todo: Assess the same issue using a regression. Specifically, create the variable `ratio1` then regress `gave` on `ratio1`, `ratio2`, and `ratio3` (or alternatively, regress `gave` on the categorical variable `ratio`). Interpret the coefficients and their statistical precision._
 ```{r}
 # Regression using indicator variables for match ratios
 df_ratio <- df_ratio %>%
@@ -240,7 +233,7 @@ df_ratio <- df_ratio %>%
 summary(lm(gave ~ ratio1 + ratio2 + ratio3, data = df_ratio))
 ```
 
-_todo: Calculate the response rate difference between the 1:1 and 2:1 match ratios and the 2:1 and 3:1 ratios.  Do this directly from the data, and do it by computing the differences in the fitted coefficients of the previous regression. what do you conclude regarding the effectiveness of different sizes of matched donations?_
+
 ```{r}
 # Response rates by ratio (filtered to treatment group)
 df_ratio %>%
@@ -293,12 +286,12 @@ While all match treatments increased donation rates over the control group, **la
 
 In this subsection, I analyze the effect of the size of matched donation on the size of the charitable contribution.
 
-_todo: Calculate a t-test or run a bivariate linear regression of the donation amount on the treatment status. What do we learn from doing this analysis?_
+
 ```{r}
 # Linear regression on donation amount (includes zeros)
 summary(lm(amount ~ treatment, data = df))
 ```
-_todo: now limit the data to just people who made a donation and repeat the previous analysis. This regression allows you to analyze how much respondents donate conditional on donating some positive amount. Interpret the regression coefficients -- what did we learn? Does the treatment coefficient have a causal interpretation?
+
 ```{r}
 # Limit to people who donated
 df_donors <- df %>% filter(gave == 1)
@@ -307,7 +300,6 @@ df_donors <- df %>% filter(gave == 1)
 summary(lm(amount ~ treatment, data = df_donors))
 ```
 
-_todo: Make two plot: one for the treatment group and one for the control. Each plot should be a histogram of the donation amounts only among people who donated. Add a red vertical bar or some other annotation to indicate the sample average for each plot._
 ### Histogram: Control Group Donors
 ```{r}
 df_donors %>%
@@ -339,7 +331,6 @@ Further suppose that the true distribution of respondents who do get a charitabl
 
 ### Law of Large Numbers
 
-_to do:  Make a plot like those on slide 43 from our first class and explain the plot to the reader. To do this, you will simulate 100,00 draws from the control distribution and 10,000 draws from the treatment distribution. You'll then calculate a vector of 10,000 differences, and then you'll plot the cumulative average of that vector of differences. Comment on whether the cumulative average approaches the true difference in means._
 ```{r}
 set.seed(123)
 
@@ -369,7 +360,6 @@ tibble(step = 1:10000, cum_avg = cum_avg_diff) %>%
 
 ### Central Limit Theorem
 
-_to do: Make 4 histograms like those on slide 44 from our first class at sample sizes 50, 200, 500, and 1000 and explain these plots to the reader. To do this for a sample size of e.g. 50, take 50 draws from each of the control and treatment distributions, and calculate the average difference between those draws. Then repeat that process 999 more times so that you have 1000 averages. Plot the histogram of those averages. Comment on whether zero is in the "middle" of the distribution or whether it's in the "tail."_
 
 ```{r}
 set.seed(123)
