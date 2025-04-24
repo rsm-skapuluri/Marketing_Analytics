@@ -14,7 +14,7 @@ Dean Karlan at Yale and John List at the University of Chicago conducted a field
 
 This project seeks to replicate their results.
 
-
+::: {.callout-note collapse="true"}
 ## Data
 ```{r}
 # Load necessary libraries
@@ -30,7 +30,8 @@ glimpse(df)
 # Display summary statistics
 summary(df)
 ```
-
+::::
+::: {.callout-note collapse="true"}
 ### Description
 
 # Summarize donation outcomes by treatment condition
@@ -45,7 +46,7 @@ df %>%
     )
 ```
 
-:::: {.callout-note collapse="true"}
+
 ### Variable Definitions
 
 | Variable             | Description                                                         |
@@ -103,7 +104,7 @@ df %>%
 | `pop_propurban`      | Proportion of population urban within zip code                      |
 
 ::::
-
+::: {.callout-note collapse="true"}
 
 ### Balance Test 
 
@@ -146,8 +147,8 @@ We did this both using **Welch two-sample t-tests** and **simple linear regressi
 - Coefficient on `treatment` for `years`: -0.058 (p = 0.27)
 
 The results are consistent across both methods and match **Table 1 in Karlan & List (2007)** — there are **no statistically significant differences**, supporting the validity of the randomization process. This reassures us that any treatment effects we detect later are unlikely to be driven by pre-existing group differences.
-
-
+::::
+::: {.callout-note collapse="true"}
 ### Charitable Contribution Made
 
 First, I analyze whether matched donations lead to an increased response rate of making a donation. 
@@ -206,7 +207,8 @@ The probit results show:
 This confirms the earlier t-test and OLS findings — and matches **Table 3, Column 1** of the paper. The matching offer increased donation likelihood. While the numerical change is small, in large-scale campaigns even modest increases in donor response rates can translate to substantial revenue gains.
 
 Overall, this analysis shows that **matching offers matter** — not necessarily because they increase each individual’s donation size, but because they **nudge more people to give in the first place**.
-
+::::
+::: {.callout-note collapse="true"}
 ### Differences between Match Rates
 
 Next, I assess the effectiveness of different sizes of matched donations on the response rate.
@@ -251,6 +253,8 @@ df_ratio %>% filter(ratio == 1) %>% summarise(mean(gave))
 df_ratio %>% filter(ratio == 3) %>% summarise(mean(gave)) -
 df_ratio %>% filter(ratio == 2) %>% summarise(mean(gave))
 ```
+::::
+::: {.callout-note collapse="true"}
 ### Differences Between Match Rates
 
 Next, I assessed whether **larger match ratios (e.g., $2:$1 or $3:$1)** actually led to higher response rates compared to the standard $1:$1 match.
@@ -262,13 +266,15 @@ I ran t-tests comparing the likelihood of donating between different match ratio
 - **$3:$1 vs $1:$1**: p = 0.31
 
 These results align with what Karlan & List (2007) state: "larger match ratios... had no additional impact."
-
+::::
+::: {.callout-note collapse="true"}
 #### Regression Results:
 I regressed `gave` on binary indicators for each match ratio. Using $3:$1 as the base group, both the $1:$1 and $2:$1 groups had slightly lower donation rates, but again, the differences were **not statistically significant**.
 
 - $1:$1: –0.20 percentage points
 - $2:$1: –0.01 percentage points
-
+::::
+::: {.callout-note collapse="true"}
 #### Direct Comparison of Response Rates:
 From the raw data:
 - $1:$1 match: **2.07%** response rate
@@ -281,7 +287,8 @@ Difference between:
 
 #### Conclusion:
 While all match treatments increased donation rates over the control group, **larger match ratios didn’t generate additional gains**. This challenges the common intuition among fundraisers that a bigger match is always more compelling. Instead, it seems that the **presence of a match**, rather than its size, is what nudges behavior.
-
+::::
+::: {.callout-note collapse="true"}
 ### Size of Charitable Contribution
 
 In this subsection, I analyze the effect of the size of matched donation on the size of the charitable contribution.
@@ -320,7 +327,9 @@ df_donors %>%
     labs(title = "Donation Distribution – Treatment Group", x = "Donation Amount", y = "Count") +
     theme_minimal()
 ```
-
+::::
+::::
+::: {.callout-note collapse="true"}
 ## Simulation Experiment
 
 As a reminder of how the t-statistic "works," in this section I use simulation to demonstrate the Law of Large Numbers and the Central Limit Theorem.
@@ -328,7 +337,9 @@ As a reminder of how the t-statistic "works," in this section I use simulation t
 Suppose the true distribution of respondents who do not get a charitable donation match is Bernoulli with probability p=0.018 that a donation is made. 
 
 Further suppose that the true distribution of respondents who do get a charitable donation match of any size  is Bernoulli with probability p=0.022 that a donation is made.
-
+::::
+::::
+::: {.callout-note collapse="true"}
 ### Law of Large Numbers
 
 ```{r}
@@ -357,7 +368,9 @@ tibble(step = 1:10000, cum_avg = cum_avg_diff) %>%
     ) +
     theme_minimal()
 ```
-
+::::
+::::
+::: {.callout-note collapse="true"}
 ### Central Limit Theorem
 
 
@@ -404,6 +417,9 @@ ggplot(diffs_df, aes(x = diff)) +
     theme_minimal()
 
 ```
+::::
+::::
+::: {.callout-note collapse="true"}
 ## Simulation Experiment
 
 ### Law of Large Numbers
@@ -422,6 +438,6 @@ What we observe:
 - Most importantly, **zero is in the tails**, not the center, meaning we consistently detect a positive effect as sample size grows.
 
 This is a clear visual example of the **Central Limit Theorem**: regardless of the underlying Bernoulli distribution, the sampling distribution of the difference in means becomes **normal** as n increases.
-
+::::
 
 
