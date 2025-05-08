@@ -1,0 +1,398 @@
+---
+title: "Poisson Regression Examples"
+author: "Srujith Kapuluri"
+date: 05-07-2025
+callout-appearance: minimal # this hides the blue "i" icon on .callout-notes
+---
+
+
+## Blueprinty Case Study
+
+### Introduction
+
+Blueprinty is a small firm that makes software for developing blueprints specifically for submitting patent applications to the US patent office. Their marketing team would like to make the claim that patent applicants using Blueprinty's software are more successful in getting their patent applications approved. Ideal data to study such an effect might include the success rate of patent applications before using Blueprinty's software and after using it. Unfortunately, such data is not available. 
+
+However, Blueprinty has collected data on 1,500 mature (non-startup) engineering firms. The data include each firm's number of patents awarded over the last 5 years, regional location, age since incorporation, and whether or not the firm uses Blueprinty's software. The marketing team would like to use this data to make the claim that firms using Blueprinty's software are more successful in getting their patent applications approved.
+
+
+### Data
+
+```{r}
+# Load required library
+library(tidyverse)
+
+# Load the blueprinty dataset
+blueprinty <- read_csv("blueprinty.csv")
+
+# Inspect structure and preview data
+str(blueprinty)
+glimpse(blueprinty)
+summary(blueprinty)
+
+```
+
+```{r}
+# Histogram comparison
+ggplot(blueprinty, aes(x = patents, fill = factor(iscustomer))) +
+  geom_histogram(binwidth = 1, position = "dodge") +
+  scale_fill_manual(values = c("gray70", "steelblue"),
+                    name = "Blueprinty Customer",
+                    labels = c("No", "Yes")) +
+  labs(title = "Patent Count Distribution by Customer Status",
+       x = "Number of Patents",
+       y = "Count")
+
+# Compare means
+blueprinty %>%
+  group_by(iscustomer) %>%
+  summarise(mean_patents = mean(patents),
+            median_patents = median(patents),
+            sd_patents = sd(patents),
+            count = n())
+
+
+```
+
+
+
+Blueprinty customers are not selected at random. It may be important to account for systematic differences in the age and regional location of customers vs non-customers.
+
+```{r}
+# Bar chart of regions by customer status
+ggplot(blueprinty, aes(x = region, fill = factor(iscustomer))) +
+  geom_bar(position = "fill") +
+  scale_fill_manual(values = c("gray70", "steelblue"),
+                    name = "Blueprinty Customer",
+                    labels = c("No", "Yes")) +
+  labs(title = "Proportion of Firms in Each Region by Customer Status",
+       x = "Region",
+       y = "Proportion")
+
+# Boxplot of age by customer status
+ggplot(blueprinty, aes(x = factor(iscustomer), y = age, fill = factor(iscustomer))) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("gray70", "steelblue"),
+                    name = "Blueprinty Customer",
+                    labels = c("No", "Yes")) +
+  scale_x_discrete(labels = c("No", "Yes")) +
+  labs(title = "Age of Firms by Customer Status",
+       x = "Uses Blueprinty?",
+       y = "Firm Age")
+
+```
+
+
+### Estimation of Simple Poisson Model
+
+Since our outcome variable of interest can only be small integer values per a set unit of time, we can use a Poisson density to model the number of patents awarded to each engineering firm over the last 5 years. We start by estimating a simple Poisson model via Maximum Likelihood.
+
+
+Let $Y_1, Y_2, \dots, Y_n$ be independent observations such that $Y_i \sim \text{Poisson}(\lambda)$.
+
+Then the *likelihood function* is:
+$$
+L(\lambda) = \prod_{i=1}^{n} \frac{e^{-\lambda} \lambda^{Y_i}}{Y_i!}
+$$
+Taking the natural logarithm, the *log-likelihood* becomes:
+
+$$
+\ell(\lambda) = \sum_{i=1}^{n} \left( -\lambda + Y_i \log(\lambda) - \log(Y_i!) \right)
+$$
+
+
+
+```{r}
+# Define the log-likelihood function for Poisson
+poisson_loglikelihood <- function(lambda, Y) {
+  if (lambda <= 0) return(-Inf)  # prevent log(0) or negative lambdas
+  sum(-lambda + Y * log(lambda) - lfactorial(Y))
+}
+
+```
+
+```{r}
+# 1. Use the actual patent count vector from the data
+Y <- blueprinty$patents
+
+# 2. Define a range of lambda values
+lambda_vals <- seq(0.1, 10, by = 0.1)
+
+# 3. Compute log-likelihood for each lambda
+loglik_vals <- sapply(lambda_vals, function(lam) poisson_loglikelihood(lam, Y))
+
+# 4. Plot
+plot(lambda_vals, loglik_vals, type = "l", lwd = 2,
+     xlab = expression(lambda), ylab = "Log-Likelihood",
+     main = "Log-Likelihood of Poisson Model")
+
+```
+
+Let $Y_1, Y_2, \dots, Y_n \overset{iid}{\sim} \text{Poisson}(\lambda)$, and recall that the log-likelihood function is:
+
+$$
+\ell(\lambda) = \sum_{i=1}^n \left( -\lambda + Y_i \log \lambda - \log Y_i! \right)
+= -n\lambda + \left(\sum_{i=1}^n Y_i\right) \log \lambda + \text{const}
+$$
+
+To find the MLE, we take the derivative with respect to $\lambda$ and set it equal to zero:
+
+$$
+\frac{d\ell}{d\lambda} = -n + \frac{\sum Y_i}{\lambda} = 0
+$$
+
+Solving for $\lambda$ gives:
+
+$$
+\lambda_{\text{MLE}} = \frac{1}{n} \sum_{i=1}^n Y_i = \bar{Y}
+$$
+
+This result makes intuitive sense because the mean of a Poisson distribution is $\lambda$, so the sample mean $\bar{Y}$ is a natural estimator.
+
+```{r}
+# Define the negative log-likelihood (because optim() minimizes by default)
+neg_loglik <- function(lambda, Y) {
+  if (lambda <= 0) return(Inf)  # invalid lambda
+  -poisson_loglikelihood(lambda, Y)
+}
+
+# Run optimization starting from a reasonable guess, e.g., mean(Y)
+optim_result <- optim(par = mean(Y), fn = neg_loglik, Y = Y,
+                      method = "Brent", lower = 0.01, upper = 20)
+
+# Print the result
+optim_result$par  # this is the MLE of lambda
+
+```
+
+
+### Estimation of Poisson Regression Model
+
+Next, we extend our simple Poisson model to a Poisson Regression Model such that $Y_i = \text{Poisson}(\lambda_i)$ where $\lambda_i = \exp(X_i'\beta)$. The interpretation is that the success rate of patent awards is not constant across all firms ($\lambda$) but rather is a function of firm characteristics $X_i$. Specifically, we will use the covariates age, age squared, region, and whether the firm is a customer of Blueprinty.
+
+
+```{r}
+# Poisson regression log-likelihood function
+poisson_regression_loglikelihood <- function(beta, Y, X) {
+  # Compute lambda_i = exp(X %*% beta)
+  lambda <- exp(X %*% beta)
+  
+  # Ensure all lambda values are positive and finite
+  if (any(lambda <= 0 | !is.finite(lambda))) return(-Inf)
+
+  # Log-likelihood for Poisson regression
+  ll <- sum(-lambda + Y * log(lambda) - lfactorial(Y))
+  return(ll)
+}
+
+```
+
+```{r}
+# Load necessary packages
+library(tidyverse)
+library(broom)
+
+# Create design matrix X
+blueprinty <- blueprinty %>%
+  mutate(age2 = age^2,
+         iscustomer = as.numeric(as.character(iscustomer)))  # convert factor to numeric
+
+# Create region dummies (drop 1 for baseline)
+region_dummies <- model.matrix(~ region, data = blueprinty)[, -1]  # drop intercept and first region
+
+# Combine into design matrix X
+X <- cbind(1, blueprinty$age, blueprinty$age2, region_dummies, blueprinty$iscustomer)
+colnames(X)[1] <- "Intercept"
+
+# Outcome vector
+Y <- blueprinty$patents
+
+# Define negative log-likelihood for use with optim()
+neg_loglik_reg <- function(beta, Y, X) {
+  -poisson_regression_loglikelihood(beta, Y, X)
+}
+
+# Initial guess: 0s
+init_beta <- rep(0, ncol(X))
+
+# Optimize to find MLE
+optim_result <- optim(par = init_beta,
+                      fn = neg_loglik_reg,
+                      Y = Y,
+                      X = X,
+                      method = "BFGS",
+                      hessian = TRUE)
+
+# Extract beta estimates and Hessian
+beta_hat <- optim_result$par
+hessian <- optim_result$hessian
+
+# Compute standard errors: SE = sqrt(diag(inv(Hessian)))
+se_beta <- sqrt(diag(solve(hessian)))
+
+# Create summary table
+coef_table <- tibble(
+  Variable = colnames(X),
+  Estimate = beta_hat,
+  Std_Error = se_beta
+)
+
+print(coef_table)
+```
+
+```{r}
+# Fit Poisson regression using glm()
+model_glm <- glm(
+  patents ~ age + I(age^2) + region + iscustomer,
+  data = blueprinty,
+  family = poisson(link = "log")
+)
+
+# View coefficient summary
+summary(model_glm)
+
+```
+
+
+    Customer effect is positive and significant → supports Blueprinty’s marketing claim
+
+    Age relationship is nonlinear → makes sense, older firms may plateau or decline in innovation
+
+    Regional differences matter — possibly due to local R&D incentives, tech concentration, etc.
+```{r}
+```{r}
+# Load libraries
+library(tidyverse)
+
+# Step 1: Convert iscustomer to numeric 'customer'
+blueprinty <- blueprinty %>%
+  mutate(customer = as.numeric(as.character(iscustomer)))
+
+# Step 2: Fit Poisson regression model
+glm_fit <- glm(
+  patents ~ age + I(age^2) + region + customer,
+  data = blueprinty,
+  family = poisson(link = "log")
+)
+
+# Step 3: Extract beta coefficients
+beta_hat <- coef(glm_fit)
+
+# Step 4: Create design matrix with all firms set as non-customers (X_0)
+blueprinty_X0 <- blueprinty %>%
+  mutate(customer = 0)
+X_0 <- model.matrix(~ age + I(age^2) + region + customer, data = blueprinty_X0)
+
+# Step 5: Create design matrix with all firms set as customers (X_1)
+blueprinty_X1 <- blueprinty %>%
+  mutate(customer = 1)
+X_1 <- model.matrix(~ age + I(age^2) + region + customer, data = blueprinty_X1)
+
+# Step 6: Predict expected patent counts
+y_pred_0 <- exp(X_0 %*% beta_hat)
+y_pred_1 <- exp(X_1 %*% beta_hat)
+
+# Step 7: Estimate average treatment effect
+treatment_effect <- mean(y_pred_1 - y_pred_0)
+
+# Step 8: Output the result
+cat("✅ Estimated average treatment effect of Blueprinty software:", round(treatment_effect, 3), "additional patents per firm\n")
+```
+
+
+
+## AirBnB Case Study
+
+### Introduction
+
+AirBnB is a popular platform for booking short-term rentals. In March 2017, students Annika Awad, Evan Lebo, and Anna Linden scraped of 40,000 Airbnb listings from New York City.  The data include the following variables:
+
+:::: {.callout-note collapse="true"}
+### Variable Definitions
+
+    - `id` = unique ID number for each unit
+    - `last_scraped` = date when information scraped
+    - `host_since` = date when host first listed the unit on Airbnb
+    - `days` = `last_scraped` - `host_since` = number of days the unit has been listed
+    - `room_type` = Entire home/apt., Private room, or Shared room
+    - `bathrooms` = number of bathrooms
+    - `bedrooms` = number of bedrooms
+    - `price` = price per night (dollars)
+    - `number_of_reviews` = number of reviews for the unit on Airbnb
+    - `review_scores_cleanliness` = a cleanliness score from reviews (1-10)
+    - `review_scores_location` = a "quality of location" score from reviews (1-10)
+    - `review_scores_value` = a "quality of value" score from reviews (1-10)
+    - `instant_bookable` = "t" if instantly bookable, "f" if not
+
+::::
+```{r}
+# Load data
+airbnb <- read_csv("airbnb.csv")
+
+# Check structure
+glimpse(airbnb)
+
+# Drop rows with NA in key variables
+airbnb_clean <- airbnb %>%
+  select(number_of_reviews, room_type, bathrooms, bedrooms, price,
+         review_scores_cleanliness, review_scores_location,
+         review_scores_value, instant_bookable) %>%
+  drop_na()
+
+# Convert categorical variables
+airbnb_clean <- airbnb_clean %>%
+  mutate(
+    room_type = factor(room_type),
+    instant_bookable = if_else(instant_bookable == "t", 1, 0)
+  )
+```
+
+```{r}
+# Histogram of number_of_reviews
+ggplot(airbnb_clean, aes(x = number_of_reviews)) +
+  geom_histogram(binwidth = 5, fill = "steelblue", color = "white") +
+  labs(title = "Distribution of Number of Reviews", x = "Number of Reviews", y = "Count")
+
+# Boxplot of reviews by room_type
+ggplot(airbnb_clean, aes(x = room_type, y = number_of_reviews)) +
+  geom_boxplot(fill = "lightgray") +
+  labs(title = "Number of Reviews by Room Type")
+
+# Correlation with numeric variables
+airbnb_clean %>%
+  select(number_of_reviews, price, review_scores_cleanliness, review_scores_location, review_scores_value) %>%
+  cor(use = "complete.obs") %>%
+  round(2)
+```
+
+```{r}
+ggplot(airbnb_clean, aes(x = price, y = number_of_reviews)) +
+  geom_point(alpha = 0.4, color = "steelblue") +
+  scale_x_log10() +
+  labs(title = "Number of Reviews vs. Price",
+       x = "Price (log scale)",
+       y = "Number of Reviews") +
+  theme_minimal()
+```
+
+
+```{r}
+# Fit model
+poisson_model <- glm(
+  number_of_reviews ~ room_type + bathrooms + bedrooms + price +
+    review_scores_cleanliness + review_scores_location + review_scores_value +
+    instant_bookable,
+  data = airbnb_clean,
+  family = poisson(link = "log")
+)
+
+# View summary
+summary(poisson_model)
+```
+```{r}
+# Exponentiate coefficients
+exp(coef(poisson_model))
+```
+
+
+
+
